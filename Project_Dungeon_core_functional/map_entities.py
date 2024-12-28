@@ -23,11 +23,11 @@ class Hero(Creature):
         self.level += 1
         self.max_hp += 5
 
-class Goblin(Creature):
+class Evil_Cactus(Creature):
     object_type = "monster"
 
     def __str__(self):
-        return "Goblin"
+        return "Evil Cactus"
 
     def __init__(self, identifier, position, base_attack, base_ac, damage):
         super().__init__(identifier, position, base_attack, base_ac, damage)

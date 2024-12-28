@@ -1,7 +1,7 @@
 import pygame
 import os
-import dungeon
 import random
+# from datetime import datetime - maybe I'll make the save better again
 
 # LOADING SCREEN
 class Load_button:
@@ -22,23 +22,23 @@ class Load_button:
             pygame.draw.rect(screen, self.color_dark,[self.width, self.height, 140, 40])
         self.screen.blit(self.text, (self.width + 30, self.height + 5))
 
-    def click(self, event, game_state):
-        global loading_screen, load_game
+    def click(self, event, game_state, dungeon):
         mouse = pygame.mouse.get_pos()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.width <= mouse[0] <= self.width + 140 and self.height <= mouse[1] <= self.height + 40:
-                game_state.loading_screen = False
                 game_state.load_game = True
-                existing_file = False
-                while existing_file == False:
-                    filename = input("Input your saved file in format hero_name_DMY_HMS.dng: ")
-                    if os.path.exists(filename):
-                        existing_file = True
-                        with open(filename, "rb") as f:
-                            dungeon = pickle.load(f)
-                            hero_name = filename.split('_')[0] # cool advice from chatGPT
+                game_state.loading_screen = False
+                game_state.play_game = False
+                filename = "my_save.dng"
+                if os.path.exists(filename):
+                    if os.path.getsize(filename) > 0:  # Check if file is not empty
+                        dungeon.load(filename)
                     else:
-                        break
+                        print(f"File {filename} is empty.")
+                else:
+                    print(f"File {filename} does not exist.")
+        
+        
         
 class Play_button:
     # Play button on the loading screen
@@ -74,6 +74,7 @@ dungeon_wall = pygame.image.load("graphics/wall_texture.jpg")
 wall_decoration = pygame.image.load("graphics/wall_decoration.png")
 goblin_model = pygame.image.load("graphics/cactus.png")
 
+# Generate the map with textures
 class Game_map:
     def __init__(self, dungeon, screen):
         self.size = dungeon.size
@@ -85,7 +86,7 @@ class Game_map:
         self.walls = None
 
     def Make_walls(self):
-        # New function just because the decorations weren't working otherwise
+        # New function because the decorations weren't working otherwise
         self.walls = []
         for y, row in enumerate(self.dungeon.current_map):
             build_row = []
@@ -102,7 +103,7 @@ class Game_map:
             self.walls.append(build_row)
                 
     def draw (self, dungeon):
-        # Should make the whole game map + entities
+        # Should draw the whole game map + entities
         for y, row in enumerate(self.walls):
             for x, symbol in enumerate(row):
                 block = pygame.Rect(x * self.tile_size, y * self.tile_size,
@@ -117,7 +118,9 @@ class Game_map:
                 elif symbol == "g":  # Goblin = Cactus in this case
                     self.screen.blit(goblin_model, (x * self.tile_size, y * self.tile_size))
 
+# Game feedback for fights and stuff
 class Text_window:
+    # Text window on the bottom of the main game screen
     def __init__ (self, screen, window_font):
         self.screen = screen
         self.width = screen.get_width()
@@ -135,4 +138,29 @@ class Text_window:
         for i, line in enumerate(lines):
             rendered_line = self.font.render(line ,True, (0,0,0))
             self.screen.blit(rendered_line, (10, self.height+10 + i * 20))
-        
+
+# Save button in Text_window
+class Save_button:
+    # Button in the text window during main game screen
+    def __init__(self, screen, font, text_window):
+        self.color_light = (170, 170, 170)
+        self.color_dark = (0, 0, 0)
+        self.width = text_window.width - 110  
+        self.height = text_window.height + 50
+        self.text = font.render('SAVE', True, (255, 255, 255))
+        self.screen = screen
+
+    def draw(self):
+        mouse = pygame.mouse.get_pos()
+        if self.width <= mouse[0] <= self.width + 100 and self.height <= mouse[1] <= self.height + 40:
+            pygame.draw.rect(self.screen, self.color_light, [self.width, self.height, 100, 40])
+        else:
+            pygame.draw.rect(self.screen, self.color_dark, [self.width, self.height, 100, 40])
+        self.screen.blit(self.text, (self.width + 10, self.height + 5))
+
+    def click(self, event, game_state, dungeon):
+        mouse = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.width <= mouse[0] <= self.width + 140 and self.height <= mouse[1] <= self.height + 40:
+                filename = "my_save.dng"
+                dungeon.save(filename)

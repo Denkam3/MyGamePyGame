@@ -1,15 +1,15 @@
 from abstract_classes import AbstractDungeon
 from copy import deepcopy
-from map_entities import Hero, Goblin
+from map_entities import Hero, Evil_Cactus
 import random
-from interface_objects import Text_window as window
+import pickle
 
 class Dungeon(AbstractDungeon):
     def __init__(self, size: tuple, tunnel_number: int, hero_name: str, text_window):
         super().__init__(size)
         self.hero = Hero("@", hero_name, [1, 1], 5, 5, 1)
         self.tunnel_number = tunnel_number
-        self.starting_entities = ["goblin", "goblin"]
+        self.starting_entities = ["Evil cactus", "Evil cactus"]
         self.entities = []
         self.empty_space = []
         self.starting_position = (1, 1)
@@ -24,8 +24,40 @@ class Dungeon(AbstractDungeon):
                 printable_map += column
             printable_map += "\n"
         return printable_map
+    
+    def save(self, filename):
+        # pygame.surface can't be saved error solution
+        with open(filename, "wb") as f:
+            pickle.dump({
+                'hero': self.hero,
+                'tunnel_number': self.tunnel_number,
+                'starting_entities': self.starting_entities,
+                'entities': self.entities,
+                'empty_space': self.empty_space,
+                'starting_position': self.starting_position,
+                'message': self.message,
+                'dungeon_map': self.dungeon_map,
+                'current_map': self.current_map
+            }, f)
+        self.message = "Game saved."
+        self.text_window.text_window_update(self.message)
 
+    def load(self, filename):
+        # load only the right data
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+            self.hero = data['hero']
+            self.tunnel_number = data['tunnel_number']
+            self.starting_entities = data['starting_entities']
+            self.entities = data['entities']
+            self.empty_space = data['empty_space']
+            self.starting_position = data['starting_position']
+            self.message = data['message']
+            self.dungeon_map = data['dungeon_map']
+            self.current_map = data['current_map']
+    
     def create_dungeon(self):
+        # Create the whole dungeon with entities
         for x in range(self.size[0]):
             dungeon_row = []
             for y in range(self.size[1]):
@@ -43,6 +75,7 @@ class Dungeon(AbstractDungeon):
         
 
     def tunnel(self):
+        # random tunneling for the dungeon - every game is a new map
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         x, y = (1,1)
         dig = 0
@@ -66,6 +99,7 @@ class Dungeon(AbstractDungeon):
                     break
 
     def hero_action(self, action):
+        # Remnant of ascii game, used for pygame actions
         if action == "R" or action == "r":
             if self.dungeon_map[self.hero.position[0]][self.hero.position[1] + 1] != "▓":
                 self.hero.position[1] += 1
@@ -107,6 +141,7 @@ class Dungeon(AbstractDungeon):
                     if hasattr(entity, "attack"):
                         self.fight(entity)
                         fighting = True
+                        break # Attack only one entity in range
             if not fighting:
                 self.message ="Your big sword is hitting the air really hard!"
                 self.text_window.text_window_update(self.message)
@@ -117,10 +152,11 @@ class Dungeon(AbstractDungeon):
             self.message += "\nTHIS IS THE END"
 
     def place_entities(self):
+        # Make cute but evil cactuses on the map
         position = random.sample(self.empty_space, len(self.starting_entities))
         for idx, entity in enumerate(self.starting_entities):
-            if entity == "goblin":
-                self.entities.append(Goblin(identifier="g", position = position[idx], base_attack = -1, base_ac = 0, damage = 1))
+            if entity == "Evil cactus":
+                self.entities.append(Evil_Cactus(identifier="g", position = position[idx], base_attack = -1, base_ac = 0, damage = 1))
             for entity in self.entities:
                 self.dungeon_map[entity.position[0]][entity.position[1]] = entity.map_identifier
 
@@ -129,6 +165,7 @@ class Dungeon(AbstractDungeon):
         self.current_map[self.hero.position[0]][self.hero.position[1]] = self.hero.map_identifier
 
     def fight(self, monster):
+        # fight logic goes pew pew
         hero_roll = self.hero.attack()
         monster_roll = monster.attack()
         if hero_roll["attack_roll"] > monster.base_ac:
