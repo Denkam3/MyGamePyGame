@@ -1,3 +1,9 @@
+"""
+This file creates the dungeon in the old ASCII way. It is a template used for the pygame textures.
+It places entities on the map and handles actions of the hero and fights.
+Saving a loading is handled here.
+"""
+
 from abstract_classes import AbstractDungeon
 from copy import deepcopy
 from map_entities import Hero, Evil_Cactus
@@ -5,7 +11,34 @@ import random
 import pickle
 
 class Dungeon(AbstractDungeon):
+    """
+    Class to create the dungeon and handle the game logic.
+
+    Attributes:
+        size (tuple): Size of the dungeon.
+        tunnel_number (int): Number of tunnels in the dungeon.
+        hero_name (str): Name of the hero.
+        text_window (Text_window): Text window object.
+        hero (Hero): Hero object.
+        tunnel_number (int): Number of tunnels in the dungeon.
+        starting_entities (list): List of starting entities.
+        entities (list): List of entities in the dungeon.
+        empty_space (list): List of empty spaces in the dungeon.
+        starting_position (tuple): Starting position of the hero.
+        message (str): Message to be displayed in the text window.
+        dungeon_map (list): Dungeon map.
+        current_map (list): Current map.
+    """
     def __init__(self, size: tuple, tunnel_number: int, hero_name: str, text_window):
+        """
+        Initializes the dungeon.
+
+        Arguments:
+            size (tuple): Size of the dungeon.
+            tunnel_number (int): Number of tunnels in the dungeon.
+            hero_name (str): Name of the hero.
+            text_window (Text_window): Text window object.
+        """
         super().__init__(size)
         self.hero = Hero("@", hero_name, [1, 1], 5, 5, 1)
         self.tunnel_number = tunnel_number
@@ -16,17 +49,15 @@ class Dungeon(AbstractDungeon):
         self.message = ""
         self.create_dungeon()
         self.text_window = text_window
-
-    def __str__(self):
-        printable_map = ""
-        for row in self.current_map:
-            for column in row:
-                printable_map += column
-            printable_map += "\n"
-        return printable_map
     
     def save(self, filename):
-        # pygame.surface can't be saved error solution
+        """
+        Handles saving the game.
+        Pygame.surface can't be saved error solution.
+
+        Arguments:
+            filename (str): Name of the file to save the game.
+        """
         with open(filename, "wb") as f:
             pickle.dump({
                 'hero': self.hero,
@@ -43,7 +74,12 @@ class Dungeon(AbstractDungeon):
         self.text_window.text_window_update(self.message)
 
     def load(self, filename):
-        # load only the right data
+        """
+        Handles loading the game.
+
+        Arguments:
+            filename (str): Name of the file to load the game.
+        """
         with open(filename, "rb") as f:
             data = pickle.load(f)
             self.hero = data['hero']
@@ -57,7 +93,9 @@ class Dungeon(AbstractDungeon):
             self.current_map = data['current_map']
     
     def create_dungeon(self):
-        # Create the whole dungeon with entities
+        """
+        Creates the dungeon and places entities on the map.
+        """
         for x in range(self.size[0]):
             dungeon_row = []
             for y in range(self.size[1]):
@@ -75,7 +113,9 @@ class Dungeon(AbstractDungeon):
         
 
     def tunnel(self):
-        # random tunneling for the dungeon - every game is a new map
+        """
+        Random tunneling for the dungeon.
+        """
         directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         x, y = (1,1)
         dig = 0
@@ -99,6 +139,12 @@ class Dungeon(AbstractDungeon):
                     break
 
     def hero_action(self, action):
+        """
+        Handles the hero actions.
+
+        Arguments:
+            action (str): Action to be performed.
+        """
         # Remnant of ascii game, used for pygame actions
         if action == "R" or action == "r":
             if self.dungeon_map[self.hero.position[0]][self.hero.position[1] + 1] != "▓":
@@ -152,7 +198,9 @@ class Dungeon(AbstractDungeon):
             self.message += "\nTHIS IS THE END"
 
     def place_entities(self):
-        # Make cute but evil cactuses on the map
+        """
+        Places entities on the map.
+        """
         position = random.sample(self.empty_space, len(self.starting_entities))
         for idx, entity in enumerate(self.starting_entities):
             if entity == "Evil cactus":
@@ -161,11 +209,23 @@ class Dungeon(AbstractDungeon):
                 self.dungeon_map[entity.position[0]][entity.position[1]] = entity.map_identifier
 
     def update_map(self, entities: list):
+        """
+        Updates the map with the entities.
+
+        Arguments:
+            entities (list): List of entities.
+        """
         self.current_map = deepcopy(self.dungeon_map)
         self.current_map[self.hero.position[0]][self.hero.position[1]] = self.hero.map_identifier
 
     def fight(self, monster):
-        # fight logic goes pew pew
+        """
+        Fight between the hero and the monster.
+        Fight logic goes pew pew.
+
+        Arguments:
+            monster (Entity): Monster entity.
+        """
         hero_roll = self.hero.attack()
         monster_roll = monster.attack()
         if hero_roll["attack_roll"] > monster.base_ac:
