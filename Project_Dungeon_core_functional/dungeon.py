@@ -6,9 +6,10 @@ Saving a loading is handled here.
 
 from abstract_classes import AbstractDungeon
 from copy import deepcopy
-from map_entities import Hero, Evil_Cactus
+from map_entities import Hero, Evil_Cactus, Duckie
 import random
 import pickle
+import pygame
 
 class Dungeon(AbstractDungeon):
     """
@@ -42,15 +43,17 @@ class Dungeon(AbstractDungeon):
         super().__init__(size)
         self.hero = Hero("@", hero_name, [1, 1], 5, 5, 1)
         self.tunnel_number = tunnel_number
-        self.starting_entities = ["Evil cactus", "Evil cactus"]
+        self.starting_entities = ["Evil cactus", "Evil cactus", "Evil cactus"]
         self.entities = []
         self.empty_space = []
         self.starting_position = (1, 1)
         self.message = ""
         self.create_dungeon()
         self.text_window = text_window
+        self.portal_on_map = False
+        self.portal_position = None
     
-    def save(self, filename):
+    def save(self, filename, game_state):
         """
         Handles saving the game.
         Pygame.surface can't be saved error solution.
@@ -68,12 +71,15 @@ class Dungeon(AbstractDungeon):
                 'starting_position': self.starting_position,
                 'message': self.message,
                 'dungeon_map': self.dungeon_map,
-                'current_map': self.current_map
+                'current_map': self.current_map,
+                'portal_on_map': self.portal_on_map,
+                'portal_position': self.portal_position,
+                'next_level': game_state.next_level,
             }, f)
         self.message = "Game saved."
         self.text_window.text_window_update(self.message)
 
-    def load(self, filename):
+    def load(self, filename, game_state):
         """
         Handles loading the game.
 
@@ -91,6 +97,13 @@ class Dungeon(AbstractDungeon):
             self.message = data['message']
             self.dungeon_map = data['dungeon_map']
             self.current_map = data['current_map']
+            self.portal_on_map = data['portal_on_map']
+            self.portal_position = data['portal_position']
+            game_state.next_level = data.get('next_level')
+
+            if game_state.next_level:
+                self.portal_on_map = False
+                self.portal_position = None
     
     def create_dungeon(self):
         """
@@ -140,12 +153,11 @@ class Dungeon(AbstractDungeon):
 
     def hero_action(self, action):
         """
-        Handles the hero actions.
+        Handles the hero actions. Remnants of the old ASCII game.
 
         Arguments:
             action (str): Action to be performed.
         """
-        # Remnant of ascii game, used for pygame actions
         if action == "R" or action == "r":
             if self.dungeon_map[self.hero.position[0]][self.hero.position[1] + 1] != "▓":
                 self.hero.position[1] += 1
@@ -205,6 +217,8 @@ class Dungeon(AbstractDungeon):
         for idx, entity in enumerate(self.starting_entities):
             if entity == "Evil cactus":
                 self.entities.append(Evil_Cactus(identifier="g", position = position[idx], base_attack = -1, base_ac = 0, damage = 1))
+            if entity == "Duckie":
+                self.entities.append(Duckie(identifier="d", position = position[idx], base_attack = -1, base_ac = 0, damage = 2))
             for entity in self.entities:
                 self.dungeon_map[entity.position[0]][entity.position[1]] = entity.map_identifier
 
@@ -237,7 +251,7 @@ class Dungeon(AbstractDungeon):
                 self.message = f"Hero Hero inflicted {hero_roll['inflicted_damage']} damage and slain {monster}"
                 self.text_window.text_window_update(self.message)
                 self.hero.gold += monster.gold
-                self.hero.xp += 1
+                self.hero.xp += 10
                 self.dungeon_map[monster.position[0]][monster.position[1]] = "."
                 self.entities.remove(monster)
         if monster_roll["attack_roll"] > self.hero.base_ac:
@@ -249,3 +263,17 @@ class Dungeon(AbstractDungeon):
                 self.text_window.text_window_update(self.message)
         self.message += f"\nHero HP: {self.hero.hp}  Monster HP: {monster.hp}"
         self.text_window.text_window_update(self.message)
+
+    def portal(self, screen):
+        """
+        Portal to the next level.
+        """
+        if not self.portal_on_map:
+            self.portal_position = list(random.choice(self.empty_space))
+            self.portal_on_map = True
+        
+        # Add transparency to the portal
+        portal_surface = pygame.Surface((50, 50), pygame.SRCALPHA)
+        portal_surface.fill((255, 191, 13, 128)) 
+
+        screen.blit(portal_surface, (self.portal_position[1] * 50, self.portal_position[0] * 50 + 25))   

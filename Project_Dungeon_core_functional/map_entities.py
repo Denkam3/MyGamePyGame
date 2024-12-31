@@ -22,6 +22,7 @@ class Hero(Creature):
     def level_up(self):
         self.level += 1
         self.max_hp += 5
+        self.hp = self.max_hp
 
 class Evil_Cactus(Creature):
     object_type = "monster"
@@ -34,3 +35,15 @@ class Evil_Cactus(Creature):
         self.hp = random.randint(1, 5)
         self.xp = 10
         self.gold = random.randint(1, 6)
+
+class Duckie(Creature):
+    object_type = "monster"
+
+    def __str__(self):
+        return "Duckie"
+
+    def __init__(self, identifier, position, base_attack, base_ac, damage):
+        super().__init__(identifier, position, base_attack, base_ac, damage)
+        self.hp = random.randint(3, 7)
+        self.xp = 15
+        self.gold = random.randint(2, 7)

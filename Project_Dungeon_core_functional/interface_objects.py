@@ -32,7 +32,7 @@ class Load_button:
         self.color_light = (170, 170, 170)
         self.color_dark = (100, 100, 100)
         self.width = screen.get_width() /2 - 70
-        self.height = screen.get_height() /2 + 50
+        self.height = screen.get_height() /2
         self.text = font.render('LOAD', True, (255, 255, 255))
         self.screen = screen
 
@@ -67,7 +67,7 @@ class Load_button:
                 filename = "my_save.dng"
                 if os.path.exists(filename):
                     if os.path.getsize(filename) > 0:  # Check if file is not empty
-                        dungeon.load(filename)
+                        dungeon.load(filename, game_state)
                     else:
                         print(f"File {filename} is empty.")
                 else:
@@ -98,7 +98,7 @@ class Play_button:
         self.color_light = (170, 170, 170)
         self.color_dark = (100, 100, 100)
         self.width = screen.get_width() /2 - 70
-        self.height = screen.get_height() /2
+        self.height = screen.get_height() /2 - 50
         self.text = font.render('PLAY', True, (255, 255, 255))
         self.screen = screen
 
@@ -131,6 +131,7 @@ class Play_button:
             if self.width <= mouse[0] <= self.width + 140 and self.height <= mouse[1] <= self.height + 40:
                 game_state.loading_screen = False
                 game_state.play_game = True
+                game_state.next_level = False
 
 # DUNGEON
 
@@ -139,6 +140,8 @@ player_figure = pygame.image.load("graphics/player.png")
 dungeon_wall = pygame.image.load("graphics/wall_texture.jpg")
 wall_decoration = pygame.image.load("graphics/wall_decoration.png")
 goblin_model = pygame.image.load("graphics/cactus.png")
+duckie_model = pygame.image.load("graphics/duckie.png") # Will change to better duckie later
+sword_model = pygame.image.load("graphics/sword.png") # will change to better sword later
 
 # Generate the map with textures
 class Game_map:
@@ -166,7 +169,7 @@ class Game_map:
         self.dungeon = dungeon
         self.tile_size = 50
         self.screen = screen
-        self.decorations = 25
+        self.decorations = 30
         self.values = [dungeon_wall, wall_decoration]
         self.walls = None
 
@@ -208,8 +211,10 @@ class Game_map:
             for x, symbol in enumerate(row):
                 if symbol == "@":  # Hero
                     self.screen.blit(player_figure, (x * self.tile_size, y * self.tile_size + 25))
-                elif symbol == "g":  # Goblin = Cactus in this case
+                if symbol == "g":  # Goblin = Cactus in this case
                     self.screen.blit(goblin_model, (x * self.tile_size, y * self.tile_size + 25))
+                elif symbol =="d": # Duckie
+                    self.screen.blit(duckie_model, (x * self.tile_size, y * self.tile_size + 25))
 
 class Text_window:
     """
@@ -311,7 +316,7 @@ class Save_button:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.width <= mouse[0] <= self.width + 140 and self.height <= mouse[1] <= self.height + 40:
                 filename = "my_save.dng"
-                dungeon.save(filename)
+                dungeon.save(filename, game_state)              
 
 class MyStats:
     """
@@ -346,9 +351,182 @@ class MyStats:
         pygame.draw.rect(self.screen, (0,0,0), [0, self.height, self.width, 25])
         pygame.draw.rect(self.screen, (192, 158, 90), [0, self.height, self.width, 25], border_radius=20)
         self.text = (
-            f"Level: {dungeon.hero.level}     HP: {dungeon.hero.hp}/{dungeon.hero.max_hp}      "
-            f"Stamina: {dungeon.hero.stamina}/{dungeon.hero.max_stamina}     XP: {dungeon.hero.xp}     "
-            f"Gold: {dungeon.hero.gold}"
+            f"Level: {dungeon.hero.level}    HP: {dungeon.hero.hp}/{dungeon.hero.max_hp}    "
+            f"Stamina: {dungeon.hero.stamina}/{dungeon.hero.max_stamina}    XP: {dungeon.hero.xp}    "
+            f"Gold: {dungeon.hero.gold}    Attack: {dungeon.hero.base_attack}"
         )
         stat = self.font.render(self.text ,True, (0,0,0))
-        self.screen.blit(stat, (10, self.height + 2))
+        self.screen.blit(stat, (30, self.height + 4))
+
+# SHOP
+
+class Shop:
+    """
+    Class that manages the shop.
+
+    Attributes:
+        screen (Surface): Pygame screen surface.
+        width (int): Width of the window.
+        height (int): Height of the window.
+        font (Font): Pygame font for the text.
+    """
+    def __init__ (self, screen, font):
+        """
+        Initializes the shop window.
+
+        Arguments:
+            screen (Surface): Pygame screen surface.
+            stat_window_font (Font): Pygame font for the text.
+        """
+        self.screen = screen
+        self.width = screen.get_width()
+        self.height = screen.get_height()
+        self.font = font
+        self.text = self.font.render('Sword: 10 Gold', True, (0, 0, 0))
+        self.color_light = (170, 170, 170)
+        self.color_dark = (0, 0, 0)
+        self.text_buy = self.font.render('BUY', True, (255, 255, 255))
+
+    def draw (self):
+        """
+        Draws the shop window.
+        """
+        self.screen.fill((192,158,90))
+        pygame.draw.rect(self.screen, (90,67,5), [self.width/2 - 115, self.height/2 - 115, 230, 230])
+        pygame.draw.rect(self.screen, (146,132,91), [self.width/2 - 100, self.height/2 - 100, 200, 200])
+        sword_x = self.width // 2 - sword_model.get_width() // 2
+        sword_y = self.height // 2 - sword_model.get_height() // 2
+        self.screen.blit(sword_model, (sword_x, sword_y))
+        self.screen.blit(self.text, (self.width/2 - 100, self.height/2 + 120))
+        mouse = pygame.mouse.get_pos()
+        if self.width/2 + 50 <= mouse[0] <= self.width/2 + 100 and self.height/2 + 120 <= mouse[1] <= self.height/2 + 140:
+            pygame.draw.rect(self.screen, self.color_light, [self.width/2 + 50, self.height/2 + 120, 50, 20])
+        else:
+            pygame.draw.rect(self.screen, self.color_dark, [self.width/2 + 50, self.height/2 + 120, 50, 20])
+        self.screen.blit(self.text, (self.width + 10, self.height + 5))
+        self.screen.blit(self.text_buy, (self.width/2 + 55, self.height/2 + 122))
+    
+    def click(self, event, dungeon):
+        """
+        Handles the click event on the button.
+
+        Arguments:
+            event (Event): Pygame event.
+            dungeon (Dungeon): Dungeon object.
+        """
+        mouse = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.width/2 + 50 <= mouse[0] <= self.width/2 + 100 and self.height/2 + 120 <= mouse[1] <= self.height/2 + 140:
+                if dungeon.hero.gold >= 10 and dungeon.hero.base_attack < 6:
+                    dungeon.hero.gold -= 10
+                    dungeon.hero.base_attack += 1
+                    dungeon.hero.damage += 1
+                    self.text = self.font.render("Sold out", True, (0, 0, 0))
+                else:
+                    if dungeon.hero.base_attack >= 6:
+                        self.text = self.font.render("Sold out", True, (0, 0, 0))
+                    else: 
+                        self.text = self.font.render("Not enough gold", True, (0, 0, 0))
+    
+class Shop_button:
+    """
+    Class that manages the shop button.
+
+    Attributes:
+        color_light (tuple): RGB color for the button when hovered.
+        color_dark (tuple): RGB color thats default for the button.
+        width (int): Width of the button.
+        height (int): Height of the button.
+        text (Surface): Rendered text for the button.
+        screen (Surface): Pygame screen surface
+    """
+    def __init__(self, screen, font, text_window):
+        """
+        Initializes the shop button.
+
+        Arguments:
+            screen (Surface): Pygame screen surface.
+            font (Font): Pygame font for the text.
+            text_window (Text_window): Text window object.
+        """
+        self.color_light = (170, 170, 170)
+        self.color_dark = (0, 0, 0)
+        self.width = text_window.width - 110  
+        self.height = text_window.height + 5
+        self.text = font.render('SHOP', True, (255, 255, 255))
+        self.screen = screen
+
+    def draw(self):
+        """
+        Draws the button on the screen.
+        """
+        mouse = pygame.mouse.get_pos()
+        if self.width <= mouse[0] <= self.width + 100 and self.height <= mouse[1] <= self.height + 40:
+            pygame.draw.rect(self.screen, self.color_light, [self.width, self.height, 100, 40])
+        else:
+            pygame.draw.rect(self.screen, self.color_dark, [self.width, self.height, 100, 40])
+        self.screen.blit(self.text, (self.width + 10, self.height + 5))
+
+    def click(self, event, game_state, dungeon):
+        """
+        Handles the click event on the button.
+
+        Arguments:
+            event (Event): Pygame event.
+            game_state (GameState): Game state object.
+            dungeon (Dungeon): Dungeon object.
+        """
+        mouse = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.width <= mouse[0] <= self.width + 140 and self.height <= mouse[1] <= self.height + 40:
+                game_state.play_game = False
+                game_state.next_level = False
+                game_state.shop = True
+
+class Back_button:
+    """
+    Class that manages the back button on the shop menu.
+    """
+    def __init__(self, screen, font, text_window):
+        """
+        Initializes the back button.
+
+        Arguments:
+            screen (Surface): Pygame screen surface.
+            font (Font): Pygame font for the text.
+            text_window (Text_window): Text window object.
+        """
+        self.color_light = (170, 170, 170)
+        self.color_dark = (0, 0, 0)
+        self.width = text_window.width - 110  
+        self.height = text_window.height + 50
+        self.text = font.render('BACK', True, (255, 255, 255))
+        self.screen = screen
+
+    def draw(self):
+        """
+        Draws the button on the screen.
+        """
+        mouse = pygame.mouse.get_pos()
+        if self.width <= mouse[0] <= self.width + 100 and self.height <= mouse[1] <= self.height + 40:
+            pygame.draw.rect(self.screen, self.color_light, [self.width, self.height, 100, 40])
+        else:
+            pygame.draw.rect(self.screen, self.color_dark, [self.width, self.height, 100, 40])
+        self.screen.blit(self.text, (self.width + 10, self.height + 5))
+
+    def click(self, event, game_state, next_level):
+        """
+        Handles the click event on the button.
+
+        Arguments:
+            event (Event): Pygame event.
+            game_state (GameState): Game state object.
+        """
+        mouse = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.width <= mouse[0] <= self.width + 100 and self.height <= mouse[1] <= self.height + 40:
+                game_state.shop = False
+                if next_level == True:
+                    game_state.next_level = True
+                else:
+                    game_state.play_game = True
